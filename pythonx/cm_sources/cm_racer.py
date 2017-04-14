@@ -44,14 +44,14 @@ class Source(Base):
             self.nvim.command(cmd)
 
         cmd = "set nosmd | echoh WarningMsg | echom '$RUST_SRC_PATH not defined, please read https://github.com/phildawes/racer#configuration' | echoh None "
-        if not _check_rust_src_path():
+        if not self._check_rust_src_path():
             self.nvim.command(cmd)
 
-    def _check_rust_src_path():
+    def _check_rust_src_path(self):
         if "RUST_SRC_PATH" in os.environ:
             return os.environ["RUST_SRC_PATH"]
         # auto detect, if user already run `rustup component add rust-src`
-        found = glob(os.path.expanduser("~/.rustup/toolchains/*/lib/rustlib/src/rust/src"))
+        found = glob.glob(os.path.expanduser("~/.rustup/toolchains/*/lib/rustlib/src/rust/src"))
         if len(found) == 1:
             logger.info("detect RUST_SRC_PATH as [%s]", found[0])
             os.environ["RUST_SRC_PATH"] = found[0]
