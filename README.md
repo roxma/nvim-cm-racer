@@ -10,6 +10,13 @@ based on the [racer command](https://github.com/phildawes/racer#installation).
 
 - Install and config [racer](https://github.com/phildawes/racer#installation)
 
+Typical installation instructions:
+
+```bash
+cargo install racer
+rustup component add rust-src
+```
+
 ## vimrc example
 
 ```vim
