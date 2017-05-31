@@ -19,7 +19,6 @@ register_source(name='racer',
                 cm_refresh_patterns=[r'\.$', r'::$'],)
 
 import json
-import re
 import os
 import subprocess
 import glob
@@ -32,13 +31,11 @@ class Source(Base):
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
 
+        # dependency check
         try:
             from distutils.spawn import find_executable
-
-            # echoe does not work here
             if not find_executable("racer"):
                 self.message('error', 'Can not find racer for completion, you need https://github.com/phildawes/racer' )
-
             if not self._check_rust_src_path():
                 self.message('error', '$RUST_SRC_PATH not defined, please read https://github.com/phildawes/racer#configuration' )
         except Exception as ex:
@@ -58,28 +55,23 @@ class Source(Base):
 
     def cm_refresh(self, info, ctx, *args):
 
-        # Note:
-        #
-        # If you'r implementing you own source, and you want to get the content
-        # of the file, Please use `cm.get_src()` instead of
-        # `"\n".join(self._nvim.current.buffer[:])`
-
         src = self.get_src(ctx).encode('utf-8')
         lnum = ctx['lnum']
         col = ctx['col']
         filepath = ctx['filepath']
+        startcol = ctx['startcol']
 
-        # convert lnum, col to offset
-        # invoke gocode
-        proc = subprocess.Popen(args=['racer', 'complete-with-snippet', str(lnum), str(col - 1), filepath, '-'],
+        args = ['racer', 'complete-with-snippet', str(lnum), str(col - 1), filepath, '-']
+        proc = subprocess.Popen(args=args,
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
 
         result, errs = proc.communicate(src, timeout=30)
-        lines = result.decode('utf-8').splitlines()
 
-        startcol = ctx['startcol']
+        logger.debug("args: %s, result: [%s]", args, result.decode())
+
+        lines = result.decode('utf-8').splitlines()
 
         # typical output example:
         #   PREFIX 47,51,Stri
@@ -91,7 +83,6 @@ class Source(Base):
         #   MATCH with_capacity;with_capacity(${1:capacity});395;11;/data/roxma/.multirust/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/src/libstd/../libcollections/string.rs;Function;pub fn with_capacity(capacity: usize) -> String;"Creates a new empty `String` with a particular capacity.\n\n`String`s have an internal buffer to hold their data. The capacity is\nthe length of that buffer, and can be queried with the [`capacity()`]\nmethod. This method creates an empty `String`, but one with an initial\nbuffer that can hold `capacity` bytes. This is useful when you may be\nappending a bunch of data to the `String`, reducing the number of\nreallocations it needs to do.\n\n[`capacity()`]: #method.capacity\n\nIf the given capacity is `0`, no allocation will occur, and this method\nis identical to the [`new()`] method.\n\n[`new()`]: #method.new\n\n# Examples\n\nBasic usage:\n\n```\nlet mut s = String::with_capacity(10)\;\n\n// The String contains no chars, even though it has capacity for more\nassert_eq!(s.len(), 0)\;\n\n// These are all done without reallocating...\nlet cap = s.capacity()\;\nfor i in 0..10 {\n    s.push(\'a\')\;\n}\n\nassert_eq!(s.capacity(), cap)\;\n\n// ...but this may make the vector reallocate\ns.push(\'a\')\;\n```"
         #   END
         matches = []
-        l = len("MATCH") + 1
         for line in lines:
 
             fields = line.split(";")
@@ -117,9 +108,7 @@ class Source(Base):
                 match['snippet'] = snippet
 
             matches.append(match)
-            # info=fields[7]
 
-        logger.debug("result: [%s]", result.decode())
         logger.info("matches: [%s]", matches)
 
         self.complete(info, ctx, startcol, matches)
