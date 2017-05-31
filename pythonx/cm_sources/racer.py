@@ -10,7 +10,7 @@
 # modules required by this module
 from cm import register_source, getLogger, Base
 
-register_source(name='cm-racer',
+register_source(name='racer',
                 priority=9,
                 abbreviation='rs',
                 word_pattern=r'[\w/]+',
@@ -31,21 +31,18 @@ class Source(Base):
 
     def __init__(self, nvim):
         super(Source, self).__init__(nvim)
-        self._checked = False
 
-    def _check_warn_racer(self):
-        if self._checked:
-            return
-        self._checked = True
-        from distutils.spawn import find_executable
-        # echoe does not work here
-        cmd = "set nosmd | echoh WarningMsg | echom 'Can not find racer for completion, you need https://github.com/phildawes/racer' | echoh None "
-        if not find_executable("racer"):
-            self.nvim.command(cmd)
+        try:
+            from distutils.spawn import find_executable
 
-        cmd = "set nosmd | echoh WarningMsg | echom '$RUST_SRC_PATH not defined, please read https://github.com/phildawes/racer#configuration' | echoh None "
-        if not self._check_rust_src_path():
-            self.nvim.command(cmd)
+            # echoe does not work here
+            if not find_executable("racer"):
+                self.message('error', 'Can not find racer for completion, you need https://github.com/phildawes/racer' )
+
+            if not self._check_rust_src_path():
+                self.message('error', '$RUST_SRC_PATH not defined, please read https://github.com/phildawes/racer#configuration' )
+        except Exception as ex:
+            logger.exception(ex)
 
     def _check_rust_src_path(self):
         if "RUST_SRC_PATH" in os.environ:
@@ -71,8 +68,6 @@ class Source(Base):
         lnum = ctx['lnum']
         col = ctx['col']
         filepath = ctx['filepath']
-
-        self._check_warn_racer()
 
         # convert lnum, col to offset
         # invoke gocode
