@@ -16,6 +16,7 @@ register_source(name='racer',
                 word_pattern=r'[\w/]+',
                 scoping=True,
                 scopes=['rust'],
+                early_cache=1,
                 cm_refresh_patterns=[r'\.$', r'::$'],)
 
 import json
