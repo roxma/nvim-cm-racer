@@ -17,7 +17,7 @@ register_source(name='racer',
                 scoping=True,
                 scopes=['rust'],
                 early_cache=1,
-                cm_refresh_patterns=[r'\.$', r'::$'],)
+                cm_refresh_patterns=[r'\.', r'::'],)
 
 import json
 import os
